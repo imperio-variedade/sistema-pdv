@@ -1,7 +1,7 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, Plus, Edit, Trash2, AlertTriangle, Package, X, Save, Image as ImageIcon, Loader2 } from 'lucide-react';
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { ArrowLeft, Search, Plus, Edit, Trash2, AlertTriangle, Package, X, Save, Image as ImageIcon, Loader2, Upload } from 'lucide-react';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase'; 
 
 type CategoriaProduto = 'Utilidades' | 'Perfumaria' | 'Limpeza' | 'Eletrônicos' | 'Brinquedos' | 'Papelaria' | 'Guloseimas' | 'Uma a Uma' | 'Acessórios' | 'Festa' | 'Gráfica' | 'Ferramentas' ;
@@ -26,6 +26,8 @@ const IMGBB_API_KEY = '55429f7214843d587c303189035ae4c0';
 
 export default function Estoque() {
   const navigate = useNavigate();
+  const [importando, setImportando] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
   const [carregando, setCarregando] = useState(true);
@@ -35,6 +37,50 @@ export default function Estoque() {
   
   const [imagemArquivo, setImagemArquivo] = useState<File | null>(null);
   const [salvando, setSalvando] = useState(false);
+
+  const importarArquivoJSON = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const arquivo = event.target.files?.[0];
+    if (!arquivo) return;
+
+    if (!window.confirm("Atenção: Isso vai adicionar ou atualizar produtos. Deseja continuar?")) {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    setImportando(true);
+    const leitor = new FileReader();
+
+    leitor.onload = async (e) => {
+      try {
+        const conteudo = JSON.parse(e.target?.result as string);
+        let contador = 0;
+        
+        for (const produto of conteudo) {
+          if (produto.codigoBarras) {
+            await setDoc(doc(db, "produtos", String(produto.codigoBarras)), {
+              ...produto,
+              dataImportacao: new Date().toISOString()
+            });
+            contador++;
+          }
+        }
+        alert(`Sucesso! ${contador} produtos importados/atualizados.`);
+        
+        // SE VOCÊ TIVER UMA FUNÇÃO QUE CARREGA A TABELA DE ESTOQUE (ex: carregarProdutos), 
+        // DESCOMENTE A LINHA ABAIXO E CHAME ELA AQUI PARA ATUALIZAR A TELA NA HORA:
+        // carregarProdutos(); 
+
+      } catch (erro) {
+        console.error(erro);
+        alert("Erro ao ler JSON. Verifique a estrutura do arquivo.");
+      } finally {
+        setImportando(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      }
+    };
+
+    leitor.readAsText(arquivo);
+  };
 
   const carregarDados = async () => {
     setCarregando(true);
@@ -191,8 +237,49 @@ export default function Estoque() {
             <button onClick={() => navigate('/')} className="btn-voltar"><ArrowLeft size={16} /> VOLTAR</button>
             <h1 className="titulo-loja">ESTOQUE</h1>
           </div>
-          <button className="btn-novo" onClick={abrirNovoProduto}><Plus size={20} /> NOVO ITEM</button>
+
+          {/* CAIXA PARA ALINHAR OS DOIS BOTÕES NA DIREITA */}
+          <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+            
+            {/* NOVO BOTÃO DE IMPORTAR */}
+            <input 
+              type="file" 
+              accept=".json" 
+              ref={fileInputRef}
+              onChange={importarArquivoJSON}
+              style={{ display: 'none' }} 
+            />
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              disabled={importando}
+              style={{
+                backgroundColor: '#18181b',
+                color: importando ? '#a1a1aa' : '#e4e4e7',
+                border: '1px solid #3f3f46',
+                padding: '0 16px',
+                height: '42px', /* Altura para ficar do mesmo tamanho do btn-novo */
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontWeight: 'bold',
+                cursor: importando ? 'not-allowed' : 'pointer',
+                transition: '0.3s'
+              }}
+            >
+              <Upload size={18} color={importando ? '#a1a1aa' : '#facc15'} />
+              {importando ? 'IMPORTANDO...' : 'IMPORTAR JSON'}
+            </button>
+
+            {/* SEU BOTÃO ORIGINAL INTACTO */}
+            <button className="btn-novo" onClick={abrirNovoProduto}>
+              <Plus size={20} /> NOVO ITEM
+            </button>
+            
+          </div>
         </header>
+
+        
 
         <main className="main-content">
           <section className="container-lista">
