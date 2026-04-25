@@ -4,7 +4,7 @@ import { ArrowLeft, Search, Plus, Edit, Trash2, AlertTriangle, Package, X, Save,
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase'; 
 
-type CategoriaProduto = 'Utilidades' | 'Perfumaria' | 'Limpeza' | 'Eletrônicos' | 'Brinquedos' | 'Papelaria' | 'Guloseimas' | 'Uma a Uma' | 'Acessórios' | 'Festa' | 'Gráfica' | 'Ferramentas' ;
+type CategoriaProduto = 'Utilidades' | 'Perfumaria' | 'Limpeza' | 'Eletrônicos' | 'Brinquedos' | 'Papelaria' | 'Guloseimas' | 'Uma a Uma' | 'Acessórios' | 'Festa' | 'Gráfica' | 'Ferramentas' | 'Serviços' ;
 
 interface Produto {
   id?: string;
@@ -38,7 +38,7 @@ export default function Estoque() {
   const [imagemArquivo, setImagemArquivo] = useState<File | null>(null);
   const [salvando, setSalvando] = useState(false);
 
-  const importarArquivoJSON = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const rArquivoJSON = (event: React.ChangeEvent<HTMLInputElement>) => {
     const arquivo = event.target.files?.[0];
     if (!arquivo) return;
 
@@ -376,6 +376,7 @@ export default function Estoque() {
                     <option value="Festa">Festa</option>
                     <option value="Ferramentas">Ferramentas</option>
                     <option value="Gráfica">Gráfica</option>
+                    <option value="Serviços">Serviços</option>
                   </select>
                 </div>
                 
